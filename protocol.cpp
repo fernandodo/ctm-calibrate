@@ -53,6 +53,14 @@ protocol::protocol(uint8_t u8_type, uint16_t u16_data) {
 	}
 }
 
+protocol::protocol(uint8_t u8_packet_num, uint8_t u8_type[], uint16_t u16_data[]){
+	_packet_num = u8_packet_num;
+	for(int i = 0; i< u8_packet_num; i++) {
+		_packets[i].u8_type = u8_type[i];
+		_packets[i].u16_data = u16_data[i];
+	}
+}
+
 protocol::~protocol() {
 	// TODO Auto-generated destructor stub
 }
@@ -92,7 +100,17 @@ String protocol::report_packets()
 			ret += "\r\nType: ";
 			ret += _packets[i].u8_type;
 			ret += " Data: ";
-			ret += _packets[i].u16_data;
+			if(_packets[i].u8_type == 4)
+			{
+				int16_t s16_temp = (int16_t)(_packets[i].u16_data);
+				if(s16_temp < 0)
+				{
+					ret += '-';
+					s16_temp = -s16_temp;
+				}
+				ret += s16_temp;
+			}
+			else ret += _packets[i].u16_data;
 		}
 	}
 

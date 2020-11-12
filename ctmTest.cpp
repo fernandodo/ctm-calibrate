@@ -15,18 +15,27 @@
 #define CELL_READ_MS	(700)     // delay after send for the data to shift in
 
 
-#define TYPE_LOOP		(1)
-#define	LOAD_LOOP		(2)
 
-#define TYPE_TOT		(4)
-#define LOOP_TOT		(0)
+#define TYPE_LOOP
 
-
-#define LOOP_MSG	TYPE_LOOP
-#if (LOOP_MSG == TYPE_LOOP)
-uint8_t	u8a_msg[TYPE_TOT]	= {SENSOR_TYPE_CNTR_VAL,SENSOR_TYPE_MILLIVOLTS, SENSOR_TYPE_MILLIVOLTS, SENSOR_TYPE_MILLIVOLTS};
-uint16_t u16a_msg_data[TYPE_TOT] = {3288, 0,0,0};
-//uint16_t u16a_msg_data[TYPE_TOT] = {0, 1};
+#ifdef TYPE_LOOP
+#define TYPE_TOT		(9)
+uint8_t	u8a_msg[TYPE_TOT]	= { SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_FLAGS,SENSOR_TYPE_MILLIVOLTS,SENSOR_TYPE_TEMPERATURE , SENSOR_TYPE_FLAGS,SENSOR_TYPE_FLAGS,SENSOR_TYPE_MILLIVOLTS,SENSOR_TYPE_TEMPERATURE , SENSOR_TYPE_FLAGS };
+uint16_t u16a_msg_data[TYPE_TOT] = { 0, 0, 0,0,0 , 0, 0,0,0};
+#else
+#define LONG_MSG
+#define MSG_NUM			(4)
+#define MSG_LENGTH		(4)
+uint8_t	u8a_msg[MSG_NUM][MSG_LENGTH]	= {
+		{SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL},
+		{SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS},
+		{SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL, SENSOR_TYPE_CNTR_VAL},
+		{SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS, SENSOR_TYPE_FLAGS}};
+uint16_t u16a_msg_data[MSG_NUM][MSG_LENGTH] = {
+		{ 4,0,0,0 },
+		{0,0,0,0},
+		{0,0,0,0},
+		{0,0,0,0}};
 #endif
 
 void sendCellMsg(int type, uint16_t data) {
@@ -42,6 +51,22 @@ void sendCellMsg(int type, uint16_t data) {
 	Serial.println(msg.report_packets());
 
 }
+
+
+void sendCellMsg(uint8_t u8_num, uint8_t type[], uint16_t data[]) {
+	protocol msg(u8_num, type, data);	//build message
+
+	//send via cell port
+	Serial2.flush();
+	Serial2.print(msg.output());
+	Serial.println(msg.output());
+
+	//show the packet we sent via debug port
+	Serial.print("Sending ");
+	Serial.println(msg.report_packets());
+
+}
+
 
 void sendCellMsg(void) {
 	sendCellMsg(SENSOR_TYPE_NF, 0 );
@@ -98,8 +123,8 @@ void setup() {
 void loop() {
 
 	static unsigned long  sendMillis	= millis() + 1000;
-	static bool read_f = false, load_on = false;
-	static int	msg_type = 0, loop = 0;
+	static bool read_f = false;
+	static int	msg_type = 0;
 
 
 	unsigned long readMillis, currentMillis;
@@ -109,44 +134,18 @@ void loop() {
 	//time to send msg
 	if (currentMillis >= sendMillis) {
 
-
-
 		////////loop send///////////
-		if(LOOP_TOT <= 0 || loop < LOOP_TOT){
-#if (LOOP_MSG == TYPE_LOOP)
-			load_on = true;
+#ifdef TYPE_LOOP
 			sendCellMsg(u8a_msg[msg_type], u16a_msg_data[msg_type]); //TYPE circulation
-#else if(LOOP_MSG == LOAD_LOOP)
-//			load_on = true;
-			sendCellMsg(SENSOR_TYPE_FLAGS, load_on? (0x0001<<msg_type) : 0);//Load circulation
+			msg_type++;
+			msg_type %= TYPE_TOT;
 #endif
-			if(load_on)
-			{
-				msg_type++;
-				load_on = false;
-			}
-			else
-			{
-				load_on = true;
-			}
 
-			if(msg_type >= TYPE_TOT) {
-				//1 circulation
-				msg_type = 0;
-				loop++;
-			}
-		}
-		/////////loop end////////
-		else{
-		///////periodical  send
-			sendCellMsg();
-	//		sendCellMsg(SENSOR_TYPE_TEMPERATURE);
-
-		}
-
-
-
-		//		sendCellMsg(SENSOR_TYPE_CNTR_VAL, 3300);
+#ifdef LONG_MSG
+			sendCellMsg(MSG_LENGTH,u8a_msg[msg_type], u16a_msg_data[msg_type]); //TYPE circulation
+			msg_type++;
+			msg_type %= MSG_NUM;
+#endif
 
 		// wait for the cell data to arrive
 		readMillis        = sendMillis + CELL_READ_MS;

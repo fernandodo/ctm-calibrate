@@ -94,7 +94,7 @@ enum Sensor_Type
 	SENSOR_TYPE_FREQUENCY	,
 	SENSOR_TYPE_NOT_USED_1	,
 	SENSOR_TYPE_NOT_USED_2	,
-	SENSOR_TYPE_NOT_USED_3	,
+	SENSOR_TYPE_CALI		,
 	SENSOR_TYPE_FLAGS		,
 	SENSOR_TYPE_CNTR_VAL	,
 	SENSOR_TYPE_SWITCH_NO	,
@@ -133,6 +133,8 @@ public:
 	protocol();
 	protocol(uint8_t u8a_data_buf[], uint8_t u8_packet_num);
 	protocol(uint8_t u8_type, uint16_t u16_data);
+	protocol(uint8_t u8_packet_num, uint8_t u8_type[], uint16_t u16_data[]);
+
 	//destructor:
 	virtual ~protocol();
 
